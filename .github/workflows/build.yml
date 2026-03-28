@@ -15,10 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          # !! IMPORTANT: target must be EXACT capitalized strings.
-          # "win" / "mac" / "android64" are WRONG — they silently break
-          # internal platform detection and cause the --platform error.
-          # Valid values: Win64 | MacOS | Android32 | Android64
           - name: Windows
             os: windows-latest
             target: Win64
@@ -39,15 +35,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # build-geode-mod has NO release tags at all — @main is the ONLY valid ref.
-      # @v3 does not exist. The root cause of ALL previous errors was lowercase
-      # target values ("win", "mac", "android64"). The capitalized targets above fix
-      # the "--platform <PLATFORM> but none was supplied" error.
+      # Debug: confirm CMakeLists.txt is present before building
+      # (Remove this step once builds are passing)
+      - name: List workspace files (debug)
+        shell: bash
+        run: |
+          echo "=== Workspace root ==="
+          ls -la ${{ github.workspace }}
+          echo ""
+          echo "=== src/ directory ==="
+          ls -la ${{ github.workspace }}/src || echo "src/ not found!"
+          echo ""
+          echo "=== CMakeLists.txt check ==="
+          test -f ${{ github.workspace }}/CMakeLists.txt && echo "CMakeLists.txt EXISTS" || echo "CMakeLists.txt MISSING"
+          test -f ${{ github.workspace }}/mod.json      && echo "mod.json EXISTS"      || echo "mod.json MISSING"
+
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
           sdk: v4.4.0
           target: ${{ matrix.config.target }}
+          # Explicitly tell the action where your source is
+          # so it doesn't try to guess from a wrong working directory
+          build-dir: ${{ github.workspace }}/build
           export-pdb: true
 
   package:
