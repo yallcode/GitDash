@@ -1,0 +1,71 @@
+# .github/workflows/build.yml
+name: Build GitDash
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build - ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: Windows
+            os: windows-latest
+            target: win
+
+          - name: macOS
+            os: macos-latest
+            target: mac
+
+          - name: Android32
+            os: ubuntu-latest
+            target: android32
+
+          - name: Android64
+            os: ubuntu-latest
+            target: android64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build mod
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          sdk: v4.4.0          # Pin this. Do NOT use 'latest' in production.
+          target: ${{ matrix.config.target }}
+          export-pdb: true     # Useful for debugging crashes on Windows
+
+  package:
+    name: Package .geode file
+    runs-on: ubuntu-latest
+    needs: build   # Only runs after ALL platform builds succeed
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package mod
+        uses: geode-sdk/build-geode-mod/package@main
+        with:
+          build-output: .      # Collect artifacts from the build job
+          sdk: v4.4.0
+```
+
+**How it works:** `geode-sdk/build-geode-mod` is Geode's official Action. It handles downloading the SDK, setting up the correct toolchain per platform (MSVC on Windows, NDK on Android, Clang on Mac), configuring CMake, and producing the platform `.geode` binary. The `package` job then bundles all platform outputs into a single `.geode` file you can upload to the Geode mod index.
+
+**Critical:** Pin the `sdk:` version (`v4.4.0`, `v4.3.0`, etc.) and keep it matching your `mod.json` `"geode"` field. Floating `latest` causes random breakage when the SDK updates.
+
+---
+
+## 5. Hooking Strategy
+
+Here are the exact classes and methods you need to hook for GitDash's core functionality:
+
+### Hook 1 — Intercepting the Save (most important)
+```
+LevelEditorLayer::saveLevel()
