@@ -42,12 +42,13 @@ jobs:
       # The official Geode build action.
       # It handles: SDK download, toolchain setup (MSVC/NDK/Clang),
       # CMake configure, and compilation.
+      # FIX: Pinned to @v3 — do NOT use @main, it is unstable and broke --platform passing
       - name: Build mod
-        uses: geode-sdk/build-geode-mod@main
+        uses: geode-sdk/build-geode-mod@v3
         with:
-          sdk: v4.4.0          # KEEP IN SYNC with mod.json "geode" field
+          sdk: v4.4.0
           target: ${{ matrix.config.target }}
-          export-pdb: true     # Export .pdb debug symbols (Windows only, ignored elsewhere)
+          export-pdb: true
 
   # ─────────────────────────────────────────────────────────────────────────
   # PACKAGE — bundles all platform binaries into a single .geode file
@@ -62,8 +63,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # FIX: Also pinned to @v3
       - name: Package mod
-        uses: geode-sdk/build-geode-mod/package@main
+        uses: geode-sdk/build-geode-mod/package@v3
         with:
           build-output: .
           sdk: v4.4.0
