@@ -5,55 +5,51 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main]
-  # Also allow triggering manually from the Actions tab
   workflow_dispatch:
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────
-  # BUILD — compiles the mod for each platform in parallel
-  # ─────────────────────────────────────────────────────────────────────────
   build:
     name: Build (${{ matrix.config.name }})
     runs-on: ${{ matrix.config.os }}
     strategy:
-      fail-fast: false   # Don't cancel other platforms if one fails
+      fail-fast: false
       matrix:
         config:
+          # !! IMPORTANT: target must be EXACT capitalized strings.
+          # "win" / "mac" / "android64" are WRONG — they silently break
+          # internal platform detection and cause the --platform error.
+          # Valid values: Win64 | MacOS | Android32 | Android64
           - name: Windows
             os: windows-latest
-            target: win
+            target: Win64
 
           - name: macOS
             os: macos-latest
-            target: mac
+            target: MacOS
 
           - name: Android32
             os: ubuntu-latest
-            target: android32
+            target: Android32
 
           - name: Android64
             os: ubuntu-latest
-            target: android64
+            target: Android64
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # The official Geode build action.
-      # It handles: SDK download, toolchain setup (MSVC/NDK/Clang),
-      # CMake configure, and compilation.
-      # FIX: Pinned to @v3 — do NOT use @main, it is unstable and broke --platform passing
+      # build-geode-mod has NO release tags at all — @main is the ONLY valid ref.
+      # @v3 does not exist. The root cause of ALL previous errors was lowercase
+      # target values ("win", "mac", "android64"). The capitalized targets above fix
+      # the "--platform <PLATFORM> but none was supplied" error.
       - name: Build mod
-        uses: geode-sdk/build-geode-mod@v3
+        uses: geode-sdk/build-geode-mod@main
         with:
           sdk: v4.4.0
           target: ${{ matrix.config.target }}
           export-pdb: true
 
-  # ─────────────────────────────────────────────────────────────────────────
-  # PACKAGE — bundles all platform binaries into a single .geode file
-  # Only runs after ALL platform builds succeed
-  # ─────────────────────────────────────────────────────────────────────────
   package:
     name: Package .geode file
     runs-on: ubuntu-latest
@@ -63,20 +59,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # FIX: Also pinned to @v3
       - name: Package mod
-        uses: geode-sdk/build-geode-mod/package@v3
+        uses: geode-sdk/build-geode-mod/package@main
         with:
           build-output: .
           sdk: v4.4.0
 
-      # Upload the final .geode file as a downloadable workflow artifact.
-      # Find it under: Actions tab → your workflow run → Artifacts section.
       - name: Upload .geode artifact
         uses: actions/upload-artifact@v4
         with:
           name: GitDash.geode
-          # The package step produces a file named after your mod id
           path: "*.geode"
           if-no-files-found: error
           retention-days: 30
