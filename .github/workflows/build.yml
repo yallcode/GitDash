@@ -1,18 +1,22 @@
-# .github/workflows/build.yml
 name: Build GitDash
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
     branches: [main]
+  # Also allow triggering manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # BUILD — compiles the mod for each platform in parallel
+  # ─────────────────────────────────────────────────────────────────────────
   build:
-    name: Build - ${{ matrix.config.name }}
+    name: Build (${{ matrix.config.name }})
     runs-on: ${{ matrix.config.os }}
     strategy:
-      fail-fast: false
+      fail-fast: false   # Don't cancel other platforms if one fails
       matrix:
         config:
           - name: Windows
@@ -32,40 +36,45 @@ jobs:
             target: android64
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      # The official Geode build action.
+      # It handles: SDK download, toolchain setup (MSVC/NDK/Clang),
+      # CMake configure, and compilation.
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: v4.4.0          # Pin this. Do NOT use 'latest' in production.
+          sdk: v4.4.0          # KEEP IN SYNC with mod.json "geode" field
           target: ${{ matrix.config.target }}
-          export-pdb: true     # Useful for debugging crashes on Windows
+          export-pdb: true     # Export .pdb debug symbols (Windows only, ignored elsewhere)
 
+  # ─────────────────────────────────────────────────────────────────────────
+  # PACKAGE — bundles all platform binaries into a single .geode file
+  # Only runs after ALL platform builds succeed
+  # ─────────────────────────────────────────────────────────────────────────
   package:
     name: Package .geode file
     runs-on: ubuntu-latest
-    needs: build   # Only runs after ALL platform builds succeed
+    needs: build
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Package mod
         uses: geode-sdk/build-geode-mod/package@main
         with:
-          build-output: .      # Collect artifacts from the build job
+          build-output: .
           sdk: v4.4.0
-```
 
-**How it works:** `geode-sdk/build-geode-mod` is Geode's official Action. It handles downloading the SDK, setting up the correct toolchain per platform (MSVC on Windows, NDK on Android, Clang on Mac), configuring CMake, and producing the platform `.geode` binary. The `package` job then bundles all platform outputs into a single `.geode` file you can upload to the Geode mod index.
-
-**Critical:** Pin the `sdk:` version (`v4.4.0`, `v4.3.0`, etc.) and keep it matching your `mod.json` `"geode"` field. Floating `latest` causes random breakage when the SDK updates.
-
----
-
-## 5. Hooking Strategy
-
-Here are the exact classes and methods you need to hook for GitDash's core functionality:
-
-### Hook 1 — Intercepting the Save (most important)
-```
-LevelEditorLayer::saveLevel()
+      # Upload the final .geode file as a downloadable workflow artifact.
+      # Find it under: Actions tab → your workflow run → Artifacts section.
+      - name: Upload .geode artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitDash.geode
+          # The package step produces a file named after your mod id
+          path: "*.geode"
+          if-no-files-found: error
+          retention-days: 30

@@ -9,9 +9,31 @@
   "name": "GitDash",
   "version": "v0.1.0",
   "developer": "YallCode",
-  "description": "Version control (timeline snapshots) for the GD level editor.",
+  "description": "Version control (timeline snapshots) for the GD level editor. Never lose your work again.",
   "tags": ["editor", "utility", "creator"],
   "links": {
     "source": "https://github.com/yallcode/GitDash"
+  },
+  "settings": {
+    "max-snapshots": {
+      "name": "Max Snapshots Per Level",
+      "description": "Maximum number of snapshots to keep per level. Oldest are deleted when limit is reached.",
+      "type": "int",
+      "default": 50,
+      "min": 5,
+      "max": 200
+    },
+    "snapshot-on-autosave": {
+      "name": "Snapshot on Autosave",
+      "description": "Also create a snapshot whenever autosave triggers (not just manual saves).",
+      "type": "bool",
+      "default": false
+    },
+    "show-timestamps": {
+      "name": "Show Timestamps in Timeline",
+      "description": "Show human-readable timestamps on each snapshot in the Timeline UI.",
+      "type": "bool",
+      "default": true
+    }
   }
 }
