@@ -35,29 +35,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Debug: confirm CMakeLists.txt is present before building
-      # (Remove this step once builds are passing)
-      - name: List workspace files (debug)
+      # ── DIAGNOSTIC: expand this step in Actions to see what's on disk ──
+      - name: Verify files on disk
         shell: bash
         run: |
-          echo "=== Workspace root ==="
-          ls -la ${{ github.workspace }}
+          echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
+          echo "PWD              = $(pwd)"
           echo ""
-          echo "=== src/ directory ==="
-          ls -la ${{ github.workspace }}/src || echo "src/ not found!"
+          echo "── Root listing ──"
+          ls -la
           echo ""
-          echo "=== CMakeLists.txt check ==="
-          test -f ${{ github.workspace }}/CMakeLists.txt && echo "CMakeLists.txt EXISTS" || echo "CMakeLists.txt MISSING"
-          test -f ${{ github.workspace }}/mod.json      && echo "mod.json EXISTS"      || echo "mod.json MISSING"
+          echo "── CMakeLists.txt check ──"
+          if [ -f "CMakeLists.txt" ]; then
+            echo "✅ CMakeLists.txt EXISTS"
+            head -5 CMakeLists.txt
+          else
+            echo "❌ CMakeLists.txt MISSING"
+            echo "All files found recursively:"
+            find . -name "CMakeLists.txt" 2>/dev/null || echo "(none found anywhere)"
+          fi
 
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
           sdk: v4.4.0
           target: ${{ matrix.config.target }}
-          # Explicitly tell the action where your source is
-          # so it doesn't try to guess from a wrong working directory
-          build-dir: ${{ github.workspace }}/build
           export-pdb: true
 
   package:
