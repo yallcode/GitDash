@@ -12,14 +12,10 @@ endif()
 
 add_subdirectory(${GEODE_SDK} SYSTEM ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-# Add nlohmann/json (not bundled in Geode 5.x)
-CPMAddPackage("gh:nlohmann/json@3.11.3")
-
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.hpp)
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 
-target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
-
+# No external JSON needed — Geode 5 includes matjson built in
 setup_geode_mod(${PROJECT_NAME})
