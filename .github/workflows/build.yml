@@ -35,30 +35,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── DIAGNOSTIC: expand this step in Actions to see what's on disk ──
-      - name: Verify files on disk
-        shell: bash
-        run: |
-          echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
-          echo "PWD              = $(pwd)"
-          echo ""
-          echo "── Root listing ──"
-          ls -la
-          echo ""
-          echo "── CMakeLists.txt check ──"
-          if [ -f "CMakeLists.txt" ]; then
-            echo "✅ CMakeLists.txt EXISTS"
-            head -5 CMakeLists.txt
-          else
-            echo "❌ CMakeLists.txt MISSING"
-            echo "All files found recursively:"
-            find . -name "CMakeLists.txt" 2>/dev/null || echo "(none found anywhere)"
-          fi
-
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: v4.4.0
+          sdk: nightly
           target: ${{ matrix.config.target }}
           export-pdb: true
 
@@ -75,7 +55,7 @@ jobs:
         uses: geode-sdk/build-geode-mod/package@main
         with:
           build-output: .
-          sdk: v4.4.0
+          sdk: nightly
 
       - name: Upload .geode artifact
         uses: actions/upload-artifact@v4
