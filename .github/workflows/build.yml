@@ -33,10 +33,17 @@ jobs:
 
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
+        id: build
         with:
           sdk: v5.6.1
           target: ${{ matrix.config.target }}
-          export-pdb: true
+          combine: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitDash-${{ matrix.config.name }}
+          path: ${{ steps.build.outputs.build-output }}
 
   package:
     name: Package .geode file
@@ -44,19 +51,16 @@ jobs:
     needs: build
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Package mod
-        uses: geode-sdk/build-geode-mod/package@main
+      - name: Merge platform builds
+        uses: geode-sdk/build-geode-mod/combine@main
+        id: combine
         with:
-          build-output: .
-          sdk: v5.6.1
+          cli: v3
 
-      - name: Upload .geode artifact
+      - name: Upload final .geode
         uses: actions/upload-artifact@v4
         with:
           name: GitDash.geode
-          path: "*.geode"
-          if-no-files-found: error
-          retention-days: 30
+          path: ${{ steps.combine.outputs.build-output }}
