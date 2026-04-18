@@ -15,8 +15,6 @@ TimelinePopup* TimelinePopup::create(LevelEditorLayer* editorLayer) {
 }
 
 bool TimelinePopup::init(LevelEditorLayer* editorLayer) {
-    // Full FLAlertLayer::init signature (Geode 5):
-    // delegate, title, desc, btn1, btn2, width, scroll, height, textScale
     if (!FLAlertLayer::init(nullptr, "GitDash Timeline", "", "x", nullptr, 340.f, false, 230.f, 1.f))
         return false;
 
@@ -25,7 +23,6 @@ bool TimelinePopup::init(LevelEditorLayer* editorLayer) {
     m_snapshots    = SnapshotManager::get().getSnapshots(m_levelID);
     m_currentIndex = 0;
 
-    // Hide the default "x" close button - we place our own
     if (m_button1) m_button1->setVisible(false);
 
     buildUI();
@@ -34,20 +31,11 @@ bool TimelinePopup::init(LevelEditorLayer* editorLayer) {
 
 void TimelinePopup::buildUI() {
     auto winSize = CCDirector::get()->getWinSize();
-    // All positions are in SCREEN coordinates
-    // The popup background is centered at (winSize/2)
-    // Popup is 340x230, so content area runs:
-    //   X: cx ± 160
-    //   Y: cy - 100 to cy + 90  (title bar takes ~40px at top)
     float cx = winSize.width  / 2.f;
     float cy = winSize.height / 2.f;
 
-    // ── Empty state ───────────────────────────────────────────────────────
     if (m_snapshots.empty()) {
-        auto lbl = CCLabelBMFont::create(
-            "No snapshots yet!\nSave your level first.",
-            "bigFont.fnt"
-        );
+        auto lbl = CCLabelBMFont::create("No snapshots yet!\nSave your level first.", "bigFont.fnt");
         lbl->setScale(0.35f);
         lbl->setAlignment(kCCTextAlignmentCenter);
         lbl->setPosition({ cx, cy + 10.f });
@@ -59,11 +47,13 @@ void TimelinePopup::buildUI() {
         );
         auto menu = CCMenu::create(closeBtn, nullptr);
         menu->setPosition({ cx, cy - 75.f });
+        // Higher touch priority so buttons work over FLAlertLayer
+        menu->setTouchPriority(kCCMenuHandlerPriority - 10);
         this->addChild(menu, 10);
         return;
     }
 
-    // ── Index label (e.g. "1/3") ──────────────────────────────────────────
+    // ── Index label ───────────────────────────────────────────────────────
     m_indexLabel = CCLabelBMFont::create("", "goldFont.fnt");
     m_indexLabel->setScale(0.4f);
     m_indexLabel->setPosition({ cx, cy + 55.f });
@@ -75,7 +65,6 @@ void TimelinePopup::buildUI() {
     auto prevBtn = CCMenuItemSpriteExtra::create(
         prevSpr, this, menu_selector(TimelinePopup::onPrev)
     );
-
     auto nextSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
     nextSpr->setScale(0.6f);
     nextSpr->setFlipX(true);
@@ -86,18 +75,19 @@ void TimelinePopup::buildUI() {
     auto navMenu = CCMenu::create(prevBtn, nextBtn, nullptr);
     navMenu->setPosition({ cx, cy + 55.f });
     navMenu->setLayout(RowLayout::create()->setGap(90.f));
+    navMenu->setTouchPriority(kCCMenuHandlerPriority - 10);
     this->addChild(navMenu, 10);
 
-    // ── Time + size labels ────────────────────────────────────────────────
+    // ── Info labels ───────────────────────────────────────────────────────
     m_timeLabel = CCLabelBMFont::create("", "bigFont.fnt");
     m_timeLabel->setScale(0.38f);
-    m_timeLabel->setPosition({ cx, cy + 25.f });
+    m_timeLabel->setPosition({ cx, cy + 20.f });
     this->addChild(m_timeLabel, 10);
 
     m_sizeLabel = CCLabelBMFont::create("", "chatFont.fnt");
     m_sizeLabel->setScale(0.38f);
     m_sizeLabel->setColor({ 180, 180, 180 });
-    m_sizeLabel->setPosition({ cx, cy + 5.f });
+    m_sizeLabel->setPosition({ cx, cy + 2.f });
     this->addChild(m_sizeLabel, 10);
 
     // ── Action buttons ────────────────────────────────────────────────────
@@ -121,6 +111,8 @@ void TimelinePopup::buildUI() {
     auto btnMenu = CCMenu::create(restoreBtn, deleteBtn, deleteAllBtn, closeBtn, nullptr);
     btnMenu->setPosition({ cx, cy - 75.f });
     btnMenu->setLayout(RowLayout::create()->setGap(5.f));
+    // This is the key fix — higher priority than FLAlertLayer's touch handler
+    btnMenu->setTouchPriority(kCCMenuHandlerPriority - 10);
     this->addChild(btnMenu, 10);
 
     refreshLabels();
