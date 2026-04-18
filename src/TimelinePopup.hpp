@@ -1,11 +1,12 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <Geode/ui/Popup.hpp>
 #include "SnapshotManager.hpp"
 
 using namespace geode::prelude;
 
-class TimelinePopup : public FLAlertLayer, public FLAlertLayerProtocol {
+class TimelinePopup : public geode::Popup<LevelEditorLayer*> {
 protected:
     LevelEditorLayer* m_editorLayer = nullptr;
     int               m_levelID     = 0;
@@ -16,7 +17,7 @@ protected:
     CCLabelBMFont* m_timeLabel  = nullptr;
     CCLabelBMFont* m_sizeLabel  = nullptr;
 
-    bool init(LevelEditorLayer* editorLayer);
+    bool setup(LevelEditorLayer* editorLayer) override;
     void buildUI();
     void refreshLabels();
 
@@ -27,12 +28,6 @@ protected:
     void onDeleteAll(CCObject*);
     void applySnapshot(const Snapshot& snap);
 
-    void FLAlert_Clicked(FLAlertLayer*, bool btn2) override {}
-
 public:
     static TimelinePopup* create(LevelEditorLayer* editorLayer);
-
-    // No override — onClose is not virtual in FLAlertLayer in Geode 5
-    void onClose(CCObject*);
-    void keyBackClicked() override { onClose(nullptr); }
 };
