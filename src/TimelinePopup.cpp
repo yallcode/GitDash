@@ -4,8 +4,6 @@
 
 using namespace geode::prelude;
 
-// ─── Factory ──────────────────────────────────────────────────────────────────
-
 TimelinePopup* TimelinePopup::create(LevelEditorLayer* editorLayer) {
     auto ret = new TimelinePopup();
     if (ret && ret->init(editorLayer)) {
@@ -16,10 +14,10 @@ TimelinePopup* TimelinePopup::create(LevelEditorLayer* editorLayer) {
     return nullptr;
 }
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
-
 bool TimelinePopup::init(LevelEditorLayer* editorLayer) {
-    if (!FLAlertLayer::init(nullptr, "GitDash Timeline", "OK", nullptr, 360.f))
+    // Geode 5 full FLAlertLayer::init signature:
+    // (delegate, title, desc, btn1, btn2, width, scroll, height, textScale)
+    if (!FLAlertLayer::init(this, "GitDash Timeline", "", "Close", nullptr, 360.f, false, 260.f, 1.f))
         return false;
 
     m_editorLayer  = editorLayer;
@@ -27,50 +25,38 @@ bool TimelinePopup::init(LevelEditorLayer* editorLayer) {
     m_snapshots    = SnapshotManager::get().getSnapshots(m_levelID);
     m_currentIndex = 0;
 
-    // Hide the default OK button — we use our own
     if (m_button1) m_button1->setVisible(false);
 
     buildUI();
     return true;
 }
 
-// ─── UI ───────────────────────────────────────────────────────────────────────
-
 void TimelinePopup::buildUI() {
     auto winSize = CCDirector::get()->getWinSize();
-    float cx     = winSize.width  / 2.f;
-    float cy     = winSize.height / 2.f;
+    float cx = winSize.width  / 2.f;
+    float cy = winSize.height / 2.f;
 
-    // Background layer
-    auto bg = CCLayerColor::create({ 0, 0, 0, 180 });
-    bg->setContentSize({ 340.f, 200.f });
-    bg->setPosition({ cx - 170.f, cy - 100.f });
-    this->addChild(bg, 0);
-
-    // ── Empty state ──────────────────────────────────────────────────────
     if (m_snapshots.empty()) {
-        m_emptyLabel = CCLabelBMFont::create(
-            "No snapshots yet.\nSave your level to create one!",
+        auto lbl = CCLabelBMFont::create(
+            "No snapshots yet.\nSave your level first!",
             "bigFont.fnt"
         );
-        m_emptyLabel->setScale(0.35f);
-        m_emptyLabel->setAlignment(kCCTextAlignmentCenter);
-        m_emptyLabel->setPosition({ cx, cy + 10.f });
-        this->addChild(m_emptyLabel, 5);
+        lbl->setScale(0.35f);
+        lbl->setAlignment(kCCTextAlignmentCenter);
+        lbl->setPosition({ cx, cy + 20.f });
+        this->addChild(lbl, 5);
 
         auto closeBtn = CCMenuItemSpriteExtra::create(
             ButtonSprite::create("Close", "bigFont.fnt", "GJ_button_01.png", 0.7f),
             this, menu_selector(TimelinePopup::onClose)
         );
         auto menu = CCMenu::create(closeBtn, nullptr);
-        menu->setPosition({ cx, cy - 70.f });
+        menu->setPosition({ cx, cy - 60.f });
         this->addChild(menu, 5);
         return;
     }
 
-    // ── Navigation row ────────────────────────────────────────────────────
-    float navY = cy + 65.f;
-
+    // ── Nav row ───────────────────────────────────────────────────────────
     auto prevSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
     prevSpr->setScale(0.7f);
     auto prevBtn = CCMenuItemSpriteExtra::create(
@@ -85,30 +71,28 @@ void TimelinePopup::buildUI() {
     );
 
     auto navMenu = CCMenu::create(prevBtn, nextBtn, nullptr);
-    navMenu->setPosition({ cx, navY });
+    navMenu->setPosition({ cx, cy + 80.f });
     navMenu->setLayout(RowLayout::create()->setGap(120.f));
     this->addChild(navMenu, 5);
 
     m_indexLabel = CCLabelBMFont::create("", "goldFont.fnt");
     m_indexLabel->setScale(0.45f);
-    m_indexLabel->setPosition({ cx, navY });
+    m_indexLabel->setPosition({ cx, cy + 80.f });
     this->addChild(m_indexLabel, 5);
 
-    // ── Info labels ───────────────────────────────────────────────────────
+    // ── Info ──────────────────────────────────────────────────────────────
     m_timeLabel = CCLabelBMFont::create("", "bigFont.fnt");
     m_timeLabel->setScale(0.4f);
-    m_timeLabel->setPosition({ cx, cy + 30.f });
+    m_timeLabel->setPosition({ cx, cy + 35.f });
     this->addChild(m_timeLabel, 5);
 
     m_sizeLabel = CCLabelBMFont::create("", "chatFont.fnt");
     m_sizeLabel->setScale(0.4f);
     m_sizeLabel->setColor({ 150, 150, 150 });
-    m_sizeLabel->setPosition({ cx, cy + 10.f });
+    m_sizeLabel->setPosition({ cx, cy + 15.f });
     this->addChild(m_sizeLabel, 5);
 
     // ── Buttons ───────────────────────────────────────────────────────────
-    float btnY = cy - 55.f;
-
     auto restoreBtn = CCMenuItemSpriteExtra::create(
         ButtonSprite::create("Restore", "goldFont.fnt", "GJ_button_01.png", 0.7f),
         this, menu_selector(TimelinePopup::onRestore)
@@ -118,7 +102,7 @@ void TimelinePopup::buildUI() {
         this, menu_selector(TimelinePopup::onDelete)
     );
     auto deleteAllBtn = CCMenuItemSpriteExtra::create(
-        ButtonSprite::create("Delete All", "bigFont.fnt", "GJ_button_06.png", 0.55f),
+        ButtonSprite::create("Del All", "bigFont.fnt", "GJ_button_06.png", 0.55f),
         this, menu_selector(TimelinePopup::onDeleteAll)
     );
     auto closeBtn = CCMenuItemSpriteExtra::create(
@@ -127,7 +111,7 @@ void TimelinePopup::buildUI() {
     );
 
     auto btnMenu = CCMenu::create(restoreBtn, deleteBtn, deleteAllBtn, closeBtn, nullptr);
-    btnMenu->setPosition({ cx, btnY });
+    btnMenu->setPosition({ cx, cy - 80.f });
     btnMenu->setLayout(RowLayout::create()->setGap(6.f));
     this->addChild(btnMenu, 5);
 
@@ -152,11 +136,9 @@ void TimelinePopup::refreshLabels() {
 
     if (m_sizeLabel) {
         float kb = snap.dataSize / 1024.f;
-        m_sizeLabel->setString(fmt::format("{:.1f} KB compressed", kb).c_str());
+        m_sizeLabel->setString(fmt::format("{:.1f} KB", kb).c_str());
     }
 }
-
-// ─── Navigation ───────────────────────────────────────────────────────────────
 
 void TimelinePopup::onPrev(CCObject*) {
     if (m_currentIndex > 0) { m_currentIndex--; refreshLabels(); }
@@ -169,21 +151,9 @@ void TimelinePopup::onNext(CCObject*) {
     }
 }
 
-// ─── Actions ──────────────────────────────────────────────────────────────────
-
 void TimelinePopup::onRestore(CCObject*) {
     if (m_snapshots.empty()) return;
-    auto snap = m_snapshots[m_currentIndex];
-
-    auto alert = FLAlertLayer::create(nullptr,
-        "Restore Snapshot",
-        fmt::format("Restore to <cy>{}</c>? Current unsaved changes will be lost.", snap.relativeTimeString()).c_str(),
-        "Cancel", "Restore", 320.f
-    );
-    alert->m_button2->addClickEventListener([this, snap](CCObject*) {
-        applySnapshot(snap);
-    });
-    alert->show();
+    applySnapshot(m_snapshots[m_currentIndex]);
 }
 
 void TimelinePopup::applySnapshot(const Snapshot& snap) {
@@ -194,10 +164,14 @@ void TimelinePopup::applySnapshot(const Snapshot& snap) {
     }
 
     m_editorLayer->m_level->m_levelString = levelString;
-    m_editorLayer->loadLevelData();
+
+    // Reload editor with restored level string
+    auto scene = CCScene::create();
+    auto newEditor = LevelEditorLayer::create(m_editorLayer->m_level, false);
+    scene->addChild(newEditor);
+    CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
 
     log::info("[GitDash] Restored snapshot: {}", snap.filename);
-    onClose(nullptr);
 
     Notification::create(
         fmt::format("Restored: {}", snap.relativeTimeString()),
@@ -207,37 +181,20 @@ void TimelinePopup::applySnapshot(const Snapshot& snap) {
 
 void TimelinePopup::onDelete(CCObject*) {
     if (m_snapshots.empty()) return;
-    auto snap = m_snapshots[m_currentIndex];
-
-    auto alert = FLAlertLayer::create(nullptr,
-        "Delete Snapshot",
-        fmt::format("Delete snapshot from {}?", snap.relativeTimeString()).c_str(),
-        "Cancel", "Delete", 300.f
-    );
-    alert->m_button2->addClickEventListener([this, snap](CCObject*) {
-        SnapshotManager::get().deleteSnapshot(m_levelID, snap);
-        m_snapshots = SnapshotManager::get().getSnapshots(m_levelID);
-        if (m_currentIndex >= static_cast<int>(m_snapshots.size()) && m_currentIndex > 0)
-            m_currentIndex--;
-        refreshLabels();
-    });
-    alert->show();
+    SnapshotManager::get().deleteSnapshot(m_levelID, m_snapshots[m_currentIndex]);
+    m_snapshots = SnapshotManager::get().getSnapshots(m_levelID);
+    if (m_currentIndex >= static_cast<int>(m_snapshots.size()) && m_currentIndex > 0)
+        m_currentIndex--;
+    refreshLabels();
+    Notification::create("Snapshot deleted.", NotificationIcon::Warning)->show();
 }
 
 void TimelinePopup::onDeleteAll(CCObject*) {
-    auto alert = FLAlertLayer::create(nullptr,
-        "Delete All",
-        "Permanently delete <cr>ALL snapshots</c> for this level?",
-        "Cancel", "Delete All", 300.f
-    );
-    alert->m_button2->addClickEventListener([this](CCObject*) {
-        SnapshotManager::get().deleteAllSnapshots(m_levelID);
-        m_snapshots.clear();
-        m_currentIndex = 0;
-        onClose(nullptr);
-        Notification::create("All snapshots deleted.", NotificationIcon::Warning)->show();
-    });
-    alert->show();
+    SnapshotManager::get().deleteAllSnapshots(m_levelID);
+    m_snapshots.clear();
+    m_currentIndex = 0;
+    onClose(nullptr);
+    Notification::create("All snapshots deleted.", NotificationIcon::Warning)->show();
 }
 
 void TimelinePopup::onClose(CCObject*) {

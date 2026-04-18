@@ -34,7 +34,7 @@ jobs:
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: nightly
+          sdk: v5.6.1
           target: ${{ matrix.config.target }}
           export-pdb: true
 
@@ -51,7 +51,7 @@ jobs:
         uses: geode-sdk/build-geode-mod/package@main
         with:
           build-output: .
-          sdk: nightly
+          sdk: v5.6.1
 
       - name: Upload .geode artifact
         uses: actions/upload-artifact@v4
