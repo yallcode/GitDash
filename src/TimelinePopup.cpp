@@ -195,25 +195,28 @@ void TimelinePopup::applySnapshot(const Snapshot& snap) {
 
     // Write restored string to level
     m_editorLayer->m_level->m_levelString = levelString;
+    m_pendingLevel = m_editorLayer->m_level;
 
-    // CRITICAL FIX: Never replace the scene directly inside a touch handler!
-    // The EditorUI::ccTouchEnded call chain is still on the stack.
-    // Schedule the transition for the NEXT frame so the touch chain finishes first.
-    auto level = m_editorLayer->m_level;
-    CCDirector::get()->getScheduler()->scheduleBlock([level](float) {
-        auto scene     = CCScene::create();
-        auto newEditor = LevelEditorLayer::create(level, false);
-        scene->addChild(newEditor);
-        CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
-        log::info("[GitDash] Editor reloaded with restored snapshot.");
-    }, this, 0.f, 0, 0.f, false, "gitdash_restore");
+    // CRITICAL: defer the scene switch to the next frame using scheduleOnce.
+    // We cannot call replaceScene() while inside a touch event handler —
+    // EditorUI::ccTouchEnded is still on the stack and will crash (SIGSEGV).
+    this->scheduleOnce(schedule_selector(TimelinePopup::doRestore), 0.f);
 
     Notification::create(
-        fmt::format("Restored: {}", snap.relativeTimeString()),
+        fmt::format("Restoring: {}", snap.relativeTimeString()),
         NotificationIcon::Success
     )->show();
 
     onClose(nullptr);
+}
+
+void TimelinePopup::doRestore(float) {
+    if (!m_pendingLevel) return;
+    auto scene     = CCScene::create();
+    auto newEditor = LevelEditorLayer::create(m_pendingLevel, false);
+    scene->addChild(newEditor);
+    CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
+    log::info("[GitDash] Editor reloaded with restored snapshot.");
 }
 
 void TimelinePopup::onDelete(CCObject*) {
