@@ -15,13 +15,10 @@ TimelinePopup* TimelinePopup::create(LevelEditorLayer* editorLayer) {
 }
 
 void TimelinePopup::registerWithTouchDispatcher() {
-    CCDirector::get()->getTouchDispatcher()->addTargetedDelegate(
-        this, -500, true
-    );
+    CCDirector::get()->getTouchDispatcher()->addTargetedDelegate(this, -500, true);
 }
 
 bool TimelinePopup::init(LevelEditorLayer* editorLayer) {
-    // Full-screen dim layer
     if (!CCLayerColor::initWithColor({ 0, 0, 0, 150 }))
         return false;
 
@@ -42,45 +39,33 @@ void TimelinePopup::buildUI() {
     float cx = winSize.width  / 2.f;
     float cy = winSize.height / 2.f;
 
-    // ── Popup background (GD style) ───────────────────────────────────────
     auto bg = CCScale9Sprite::create("GJ_square01.png");
     bg->setContentSize({ 360.f, 240.f });
     bg->setPosition({ cx, cy });
     this->addChild(bg, 1);
 
-    // ── Title ─────────────────────────────────────────────────────────────
     auto title = CCLabelBMFont::create("GitDash Timeline", "goldFont.fnt");
     title->setScale(0.7f);
     title->setPosition({ cx, cy + 95.f });
     this->addChild(title, 2);
 
-    // ── Separator line under title ────────────────────────────────────────
     auto line = CCSprite::createWithSpriteFrameName("floorLine_001.png");
     line->setScaleX(1.8f);
     line->setOpacity(100);
     line->setPosition({ cx, cy + 78.f });
     this->addChild(line, 2);
 
-    // ── Empty state ───────────────────────────────────────────────────────
     if (m_snapshots.empty()) {
-        auto emptyIcon = CCSprite::createWithSpriteFrameName("GJ_timeIcon_001.png");
-        if (emptyIcon) {
-            emptyIcon->setScale(0.8f);
-            emptyIcon->setOpacity(120);
-            emptyIcon->setPosition({ cx, cy + 25.f });
-            this->addChild(emptyIcon, 2);
-        }
-
         auto lbl = CCLabelBMFont::create("No snapshots yet!", "bigFont.fnt");
         lbl->setScale(0.45f);
         lbl->setColor({ 200, 200, 200 });
-        lbl->setPosition({ cx, cy - 15.f });
+        lbl->setPosition({ cx, cy + 10.f });
         this->addChild(lbl, 2);
 
         auto hint = CCLabelBMFont::create("Save your level to create one.", "chatFont.fnt");
         hint->setScale(0.4f);
         hint->setColor({ 150, 150, 150 });
-        hint->setPosition({ cx, cy - 35.f });
+        hint->setPosition({ cx, cy - 15.f });
         this->addChild(hint, 2);
 
         auto closeBtn = CCMenuItemSpriteExtra::create(
@@ -88,25 +73,22 @@ void TimelinePopup::buildUI() {
             this, menu_selector(TimelinePopup::onClose)
         );
         auto menu = CCMenu::create(closeBtn, nullptr);
-        menu->setPosition({ cx, cy - 85.f });
+        menu->setPosition({ cx, cy - 75.f });
         this->addChild(menu, 2);
         return;
     }
 
-    // ── Snapshot card background ──────────────────────────────────────────
     auto card = CCScale9Sprite::create("square02_001.png");
-    card->setContentSize({ 320.f, 100.f });
-    card->setPosition({ cx, cy + 20.f });
+    card->setContentSize({ 320.f, 90.f });
+    card->setPosition({ cx, cy + 22.f });
     card->setOpacity(80);
     this->addChild(card, 2);
 
-    // ── Navigation: prev arrow ────────────────────────────────────────────
     auto prevSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
     prevSpr->setScale(0.8f);
     auto prevBtn = CCMenuItemSpriteExtra::create(
         prevSpr, this, menu_selector(TimelinePopup::onPrev)
     );
-
     auto nextSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
     nextSpr->setScale(0.8f);
     nextSpr->setFlipX(true);
@@ -119,42 +101,27 @@ void TimelinePopup::buildUI() {
     navMenu->setLayout(RowLayout::create()->setGap(240.f));
     this->addChild(navMenu, 3);
 
-    // ── Index label (centered between arrows) ─────────────────────────────
     m_indexLabel = CCLabelBMFont::create("", "bigFont.fnt");
     m_indexLabel->setScale(0.45f);
     m_indexLabel->setColor({ 255, 220, 100 });
     m_indexLabel->setPosition({ cx, cy + 55.f });
     this->addChild(m_indexLabel, 3);
 
-    // ── Clock icon ────────────────────────────────────────────────────────
-    auto clockIcon = CCSprite::createWithSpriteFrameName("GJ_timeIcon_001.png");
-    if (clockIcon) {
-        clockIcon->setScale(0.5f);
-        clockIcon->setPosition({ cx - 120.f, cy + 25.f });
-        this->addChild(clockIcon, 3);
-    }
-
-    // ── Time label ────────────────────────────────────────────────────────
     m_timeLabel = CCLabelBMFont::create("", "bigFont.fnt");
-    m_timeLabel->setScale(0.5f);
-    m_timeLabel->setAnchorPoint({ 0.f, 0.5f });
-    m_timeLabel->setPosition({ cx - 95.f, cy + 25.f });
+    m_timeLabel->setScale(0.48f);
+    m_timeLabel->setPosition({ cx, cy + 27.f });
     this->addChild(m_timeLabel, 3);
 
-    // ── Size label ────────────────────────────────────────────────────────
     m_sizeLabel = CCLabelBMFont::create("", "chatFont.fnt");
     m_sizeLabel->setScale(0.42f);
     m_sizeLabel->setColor({ 160, 200, 255 });
-    m_sizeLabel->setPosition({ cx, cy - 5.f });
+    m_sizeLabel->setPosition({ cx, cy + 7.f });
     this->addChild(m_sizeLabel, 3);
 
-    // ── Restore button (big green, prominent) ─────────────────────────────
     auto restoreBtn = CCMenuItemSpriteExtra::create(
         ButtonSprite::create("Restore", "goldFont.fnt", "GJ_button_01.png", 0.9f),
         this, menu_selector(TimelinePopup::onRestore)
     );
-
-    // ── Delete / Del All / Close ──────────────────────────────────────────
     auto deleteBtn = CCMenuItemSpriteExtra::create(
         ButtonSprite::create("Delete", "bigFont.fnt", "GJ_button_06.png", 0.7f),
         this, menu_selector(TimelinePopup::onDelete)
@@ -168,14 +135,12 @@ void TimelinePopup::buildUI() {
         this, menu_selector(TimelinePopup::onClose)
     );
 
-    // Restore on its own row (prominent)
     auto restoreMenu = CCMenu::create(restoreBtn, nullptr);
-    restoreMenu->setPosition({ cx, cy - 60.f });
+    restoreMenu->setPosition({ cx, cy - 58.f });
     this->addChild(restoreMenu, 3);
 
-    // Delete row
     auto actionMenu = CCMenu::create(deleteBtn, deleteAllBtn, closeBtn, nullptr);
-    actionMenu->setPosition({ cx, cy - 95.f });
+    actionMenu->setPosition({ cx, cy - 93.f });
     actionMenu->setLayout(RowLayout::create()->setGap(8.f));
     this->addChild(actionMenu, 3);
 
@@ -200,8 +165,7 @@ void TimelinePopup::refreshLabels() {
 
     if (m_sizeLabel) {
         float kb = snap.dataSize / 1024.f;
-        m_sizeLabel->setString(fmt::format("{:.1f} KB  |  label: {}", kb,
-            snap.label.empty() ? "none" : snap.label).c_str());
+        m_sizeLabel->setString(fmt::format("{:.1f} KB", kb).c_str());
     }
 }
 
@@ -229,18 +193,27 @@ void TimelinePopup::applySnapshot(const Snapshot& snap) {
         return;
     }
 
+    // Write restored string to level
     m_editorLayer->m_level->m_levelString = levelString;
 
-    auto scene     = CCScene::create();
-    auto newEditor = LevelEditorLayer::create(m_editorLayer->m_level, false);
-    scene->addChild(newEditor);
-    CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
+    // CRITICAL FIX: Never replace the scene directly inside a touch handler!
+    // The EditorUI::ccTouchEnded call chain is still on the stack.
+    // Schedule the transition for the NEXT frame so the touch chain finishes first.
+    auto level = m_editorLayer->m_level;
+    CCDirector::get()->getScheduler()->scheduleBlock([level](float) {
+        auto scene     = CCScene::create();
+        auto newEditor = LevelEditorLayer::create(level, false);
+        scene->addChild(newEditor);
+        CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
+        log::info("[GitDash] Editor reloaded with restored snapshot.");
+    }, this, 0.f, 0, 0.f, false, "gitdash_restore");
 
-    log::info("[GitDash] Restored snapshot: {}", snap.filename);
     Notification::create(
         fmt::format("Restored: {}", snap.relativeTimeString()),
         NotificationIcon::Success
     )->show();
+
+    onClose(nullptr);
 }
 
 void TimelinePopup::onDelete(CCObject*) {
