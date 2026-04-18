@@ -56,8 +56,6 @@ jobs:
       - name: Merge platform builds
         uses: geode-sdk/build-geode-mod/combine@main
         id: combine
-        with:
-          cli: v3
 
       - name: Upload final .geode
         uses: actions/upload-artifact@v4
