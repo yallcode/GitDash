@@ -13,7 +13,6 @@ protected:
     int               m_currentIndex = 0;
 
     // Stored for deferred restore
-    GJGameLevel* m_pendingLevel = nullptr;
 
     CCLabelBMFont* m_indexLabel = nullptr;
     CCLabelBMFont* m_timeLabel  = nullptr;
@@ -32,7 +31,6 @@ protected:
     void applySnapshot(const Snapshot& snap);
 
     // Deferred scene transition — called via scheduleOnce
-    void doRestore(float dt);
 
 public:
     static TimelinePopup* create(LevelEditorLayer* editorLayer);

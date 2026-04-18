@@ -195,28 +195,33 @@ void TimelinePopup::applySnapshot(const Snapshot& snap) {
 
     // Write restored string to level
     m_editorLayer->m_level->m_levelString = levelString;
-    m_pendingLevel = m_editorLayer->m_level;
+    auto level = m_editorLayer->m_level;
 
-    // CRITICAL: defer the scene switch to the next frame using scheduleOnce.
-    // We cannot call replaceScene() while inside a touch event handler —
-    // EditorUI::ccTouchEnded is still on the stack and will crash (SIGSEGV).
-    this->scheduleOnce(schedule_selector(TimelinePopup::doRestore), 0.f);
-
-    Notification::create(
-        fmt::format("Restoring: {}", snap.relativeTimeString()),
-        NotificationIcon::Success
-    )->show();
-
+    // Close popup first so it's fully removed before scene transition
     onClose(nullptr);
-}
 
-void TimelinePopup::doRestore(float) {
-    if (!m_pendingLevel) return;
-    auto scene     = CCScene::create();
-    auto newEditor = LevelEditorLayer::create(m_pendingLevel, false);
-    scene->addChild(newEditor);
-    CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
-    log::info("[GitDash] Editor reloaded with restored snapshot.");
+    // Use a brand new temporary CCNode added to the scene as the scheduler target.
+    // This node persists after the popup is destroyed and fires the transition.
+    auto runner = CCNode::create();
+    CCDirector::get()->getRunningScene()->addChild(runner, 9999);
+
+    // Retain level pointer so it survives
+    level->retain();
+
+    runner->runAction(CCSequence::createWithTwoActions(
+        CCDelayTime::create(0.05f),
+        CCCallFunc::create(runner, [runner, level]() {
+            auto scene     = CCScene::create();
+            auto newEditor = LevelEditorLayer::create(level, false);
+            scene->addChild(newEditor);
+            level->release();
+            runner->removeFromParent();
+            CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
+            log::info("[GitDash] Restored snapshot successfully.");
+        })
+    ));
+
+    Notification::create("Snapshot restored!", NotificationIcon::Success)->show();
 }
 
 void TimelinePopup::onDelete(CCObject*) {
