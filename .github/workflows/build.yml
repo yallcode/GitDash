@@ -38,6 +38,7 @@ jobs:
           sdk: v5.6.1
           target: ${{ matrix.config.target }}
           combine: true
+          ccache-variant: ""
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
