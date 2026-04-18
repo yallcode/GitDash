@@ -5,8 +5,6 @@
 using namespace geode::prelude;
 
 // ── RestoreRunner ─────────────────────────────────────────────────────────────
-// A tiny helper node that lives on the scene and fires the editor reload
-// after one frame, safely outside any touch handler call stack.
 
 class RestoreRunner : public CCNode {
 public:
@@ -24,19 +22,20 @@ public:
     }
 
     void run() {
-        // Schedule on self — this node lives on the scene so it won't be
-        // destroyed when the popup closes.
         this->scheduleOnce(schedule_selector(RestoreRunner::doRestore), 0.05f);
     }
 
     void doRestore(float) {
         if (!m_level) { this->removeFromParent(); return; }
-        auto scene     = CCScene::create();
-        auto newEditor = LevelEditorLayer::create(m_level, false);
-        scene->addChild(newEditor);
-        this->removeFromParent();
+
+        // Use GameManager to properly enter the editor,
+        // the same way GD itself does when you tap a level to edit it.
+        // This avoids the canPasteState null pointer crash.
+        auto scene = LevelEditorLayer::scene(m_level, false);
         CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
-        log::info("[GitDash] Restored snapshot successfully.");
+
+        this->removeFromParent();
+        log::info("[GitDash] Restored snapshot via LevelEditorLayer::scene()");
     }
 };
 
@@ -231,18 +230,16 @@ void TimelinePopup::applySnapshot(const Snapshot& snap) {
         return;
     }
 
+    // Write restored string to level object
     m_editorLayer->m_level->m_levelString = levelString;
     auto level = m_editorLayer->m_level;
 
-    // Create a RestoreRunner on the scene — it survives popup removal
-    // and fires the scene transition on the next frame
+    // Schedule restore on a scene-level node so it survives popup removal
     auto runner = RestoreRunner::create(level);
     CCDirector::get()->getRunningScene()->addChild(runner, 9999);
     runner->run();
 
     Notification::create("Snapshot restored!", NotificationIcon::Success)->show();
-
-    // Close popup after scheduling the restore
     onClose(nullptr);
 }
 
