@@ -4,6 +4,44 @@
 
 using namespace geode::prelude;
 
+// ── RestoreRunner ─────────────────────────────────────────────────────────────
+// A tiny helper node that lives on the scene and fires the editor reload
+// after one frame, safely outside any touch handler call stack.
+
+class RestoreRunner : public CCNode {
+public:
+    GJGameLevel* m_level = nullptr;
+
+    static RestoreRunner* create(GJGameLevel* level) {
+        auto ret = new RestoreRunner();
+        if (ret && ret->init()) {
+            ret->m_level = level;
+            ret->autorelease();
+            return ret;
+        }
+        CC_SAFE_DELETE(ret);
+        return nullptr;
+    }
+
+    void run() {
+        // Schedule on self — this node lives on the scene so it won't be
+        // destroyed when the popup closes.
+        this->scheduleOnce(schedule_selector(RestoreRunner::doRestore), 0.05f);
+    }
+
+    void doRestore(float) {
+        if (!m_level) { this->removeFromParent(); return; }
+        auto scene     = CCScene::create();
+        auto newEditor = LevelEditorLayer::create(m_level, false);
+        scene->addChild(newEditor);
+        this->removeFromParent();
+        CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
+        log::info("[GitDash] Restored snapshot successfully.");
+    }
+};
+
+// ── TimelinePopup ─────────────────────────────────────────────────────────────
+
 TimelinePopup* TimelinePopup::create(LevelEditorLayer* editorLayer) {
     auto ret = new TimelinePopup();
     if (ret && ret->init(editorLayer)) {
@@ -193,35 +231,19 @@ void TimelinePopup::applySnapshot(const Snapshot& snap) {
         return;
     }
 
-    // Write restored string to level
     m_editorLayer->m_level->m_levelString = levelString;
     auto level = m_editorLayer->m_level;
 
-    // Close popup first so it's fully removed before scene transition
-    onClose(nullptr);
-
-    // Use a brand new temporary CCNode added to the scene as the scheduler target.
-    // This node persists after the popup is destroyed and fires the transition.
-    auto runner = CCNode::create();
+    // Create a RestoreRunner on the scene — it survives popup removal
+    // and fires the scene transition on the next frame
+    auto runner = RestoreRunner::create(level);
     CCDirector::get()->getRunningScene()->addChild(runner, 9999);
-
-    // Retain level pointer so it survives
-    level->retain();
-
-    runner->runAction(CCSequence::createWithTwoActions(
-        CCDelayTime::create(0.05f),
-        CCCallFunc::create(runner, [runner, level]() {
-            auto scene     = CCScene::create();
-            auto newEditor = LevelEditorLayer::create(level, false);
-            scene->addChild(newEditor);
-            level->release();
-            runner->removeFromParent();
-            CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
-            log::info("[GitDash] Restored snapshot successfully.");
-        })
-    ));
+    runner->run();
 
     Notification::create("Snapshot restored!", NotificationIcon::Success)->show();
+
+    // Close popup after scheduling the restore
+    onClose(nullptr);
 }
 
 void TimelinePopup::onDelete(CCObject*) {
