@@ -1,12 +1,11 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
-#include <Geode/ui/Popup.hpp>
 #include "SnapshotManager.hpp"
 
 using namespace geode::prelude;
 
-class TimelinePopup : public geode::Popup<LevelEditorLayer*> {
+class TimelinePopup : public FLAlertLayer {
 protected:
     LevelEditorLayer* m_editorLayer = nullptr;
     int               m_levelID     = 0;
@@ -17,7 +16,7 @@ protected:
     CCLabelBMFont* m_timeLabel  = nullptr;
     CCLabelBMFont* m_sizeLabel  = nullptr;
 
-    bool setup(LevelEditorLayer* editorLayer) override;
+    bool init(LevelEditorLayer* editorLayer);
     void buildUI();
     void refreshLabels();
 
@@ -30,4 +29,6 @@ protected:
 
 public:
     static TimelinePopup* create(LevelEditorLayer* editorLayer);
+    void onClose(CCObject*);
+    void keyBackClicked() override { onClose(nullptr); }
 };

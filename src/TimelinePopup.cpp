@@ -1,14 +1,12 @@
 #include "TimelinePopup.hpp"
 #include "SnapshotManager.hpp"
 #include <Geode/Geode.hpp>
-#include <Geode/ui/Popup.hpp>
 
 using namespace geode::prelude;
 
 TimelinePopup* TimelinePopup::create(LevelEditorLayer* editorLayer) {
     auto ret = new TimelinePopup();
-    // Popup size: 340 wide x 200 tall
-    if (ret && ret->initAnchored(340.f, 200.f, editorLayer, "GJ_square01.png")) {
+    if (ret && ret->init(editorLayer)) {
         ret->autorelease();
         return ret;
     }
@@ -16,23 +14,33 @@ TimelinePopup* TimelinePopup::create(LevelEditorLayer* editorLayer) {
     return nullptr;
 }
 
-bool TimelinePopup::setup(LevelEditorLayer* editorLayer) {
+bool TimelinePopup::init(LevelEditorLayer* editorLayer) {
+    // Full FLAlertLayer::init signature (Geode 5):
+    // delegate, title, desc, btn1, btn2, width, scroll, height, textScale
+    if (!FLAlertLayer::init(nullptr, "GitDash Timeline", "", "x", nullptr, 340.f, false, 230.f, 1.f))
+        return false;
+
     m_editorLayer  = editorLayer;
     m_levelID      = editorLayer->m_level->m_levelID.value();
     m_snapshots    = SnapshotManager::get().getSnapshots(m_levelID);
     m_currentIndex = 0;
 
-    this->setTitle("GitDash Timeline");
+    // Hide the default "x" close button - we place our own
+    if (m_button1) m_button1->setVisible(false);
+
     buildUI();
     return true;
 }
 
 void TimelinePopup::buildUI() {
-    // m_mainLayer is the popup's content layer
-    // Its coordinate origin is bottom-left of the popup
-    auto size = m_mainLayer->getContentSize();
-    float cx  = size.width  / 2.f;
-    float cy  = size.height / 2.f;
+    auto winSize = CCDirector::get()->getWinSize();
+    // All positions are in SCREEN coordinates
+    // The popup background is centered at (winSize/2)
+    // Popup is 340x230, so content area runs:
+    //   X: cx ± 160
+    //   Y: cy - 100 to cy + 90  (title bar takes ~40px at top)
+    float cx = winSize.width  / 2.f;
+    float cy = winSize.height / 2.f;
 
     // ── Empty state ───────────────────────────────────────────────────────
     if (m_snapshots.empty()) {
@@ -43,53 +51,54 @@ void TimelinePopup::buildUI() {
         lbl->setScale(0.35f);
         lbl->setAlignment(kCCTextAlignmentCenter);
         lbl->setPosition({ cx, cy + 10.f });
-        m_mainLayer->addChild(lbl);
+        this->addChild(lbl, 10);
 
         auto closeBtn = CCMenuItemSpriteExtra::create(
             ButtonSprite::create("Close", "bigFont.fnt", "GJ_button_01.png", 0.7f),
             this, menu_selector(TimelinePopup::onClose)
         );
         auto menu = CCMenu::create(closeBtn, nullptr);
-        menu->setPosition({ cx, 25.f });
-        m_mainLayer->addChild(menu);
+        menu->setPosition({ cx, cy - 75.f });
+        this->addChild(menu, 10);
         return;
     }
 
-    // ── Nav row (arrows + index label) ────────────────────────────────────
+    // ── Index label (e.g. "1/3") ──────────────────────────────────────────
+    m_indexLabel = CCLabelBMFont::create("", "goldFont.fnt");
+    m_indexLabel->setScale(0.4f);
+    m_indexLabel->setPosition({ cx, cy + 55.f });
+    this->addChild(m_indexLabel, 10);
+
+    // ── Nav arrows ────────────────────────────────────────────────────────
     auto prevSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
-    prevSpr->setScale(0.65f);
+    prevSpr->setScale(0.6f);
     auto prevBtn = CCMenuItemSpriteExtra::create(
         prevSpr, this, menu_selector(TimelinePopup::onPrev)
     );
 
     auto nextSpr = CCSprite::createWithSpriteFrameName("GJ_arrow_01_001.png");
-    nextSpr->setScale(0.65f);
+    nextSpr->setScale(0.6f);
     nextSpr->setFlipX(true);
     auto nextBtn = CCMenuItemSpriteExtra::create(
         nextSpr, this, menu_selector(TimelinePopup::onNext)
     );
 
     auto navMenu = CCMenu::create(prevBtn, nextBtn, nullptr);
-    navMenu->setPosition({ cx, cy + 45.f });
-    navMenu->setLayout(RowLayout::create()->setGap(100.f));
-    m_mainLayer->addChild(navMenu);
+    navMenu->setPosition({ cx, cy + 55.f });
+    navMenu->setLayout(RowLayout::create()->setGap(90.f));
+    this->addChild(navMenu, 10);
 
-    m_indexLabel = CCLabelBMFont::create("", "goldFont.fnt");
-    m_indexLabel->setScale(0.4f);
-    m_indexLabel->setPosition({ cx, cy + 45.f });
-    m_mainLayer->addChild(m_indexLabel);
-
-    // ── Info labels ───────────────────────────────────────────────────────
+    // ── Time + size labels ────────────────────────────────────────────────
     m_timeLabel = CCLabelBMFont::create("", "bigFont.fnt");
     m_timeLabel->setScale(0.38f);
-    m_timeLabel->setPosition({ cx, cy + 15.f });
-    m_mainLayer->addChild(m_timeLabel);
+    m_timeLabel->setPosition({ cx, cy + 25.f });
+    this->addChild(m_timeLabel, 10);
 
     m_sizeLabel = CCLabelBMFont::create("", "chatFont.fnt");
     m_sizeLabel->setScale(0.38f);
     m_sizeLabel->setColor({ 180, 180, 180 });
-    m_sizeLabel->setPosition({ cx, cy - 5.f });
-    m_mainLayer->addChild(m_sizeLabel);
+    m_sizeLabel->setPosition({ cx, cy + 5.f });
+    this->addChild(m_sizeLabel, 10);
 
     // ── Action buttons ────────────────────────────────────────────────────
     auto restoreBtn = CCMenuItemSpriteExtra::create(
@@ -110,9 +119,9 @@ void TimelinePopup::buildUI() {
     );
 
     auto btnMenu = CCMenu::create(restoreBtn, deleteBtn, deleteAllBtn, closeBtn, nullptr);
-    btnMenu->setPosition({ cx, 28.f });
+    btnMenu->setPosition({ cx, cy - 75.f });
     btnMenu->setLayout(RowLayout::create()->setGap(5.f));
-    m_mainLayer->addChild(btnMenu);
+    this->addChild(btnMenu, 10);
 
     refreshLabels();
 }
@@ -164,8 +173,7 @@ void TimelinePopup::applySnapshot(const Snapshot& snap) {
 
     m_editorLayer->m_level->m_levelString = levelString;
 
-    // Reload the editor scene with restored data
-    auto scene    = CCScene::create();
+    auto scene     = CCScene::create();
     auto newEditor = LevelEditorLayer::create(m_editorLayer->m_level, false);
     scene->addChild(newEditor);
     CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
@@ -191,6 +199,11 @@ void TimelinePopup::onDeleteAll(CCObject*) {
     SnapshotManager::get().deleteAllSnapshots(m_levelID);
     m_snapshots.clear();
     m_currentIndex = 0;
-    this->onClose(nullptr);
+    onClose(nullptr);
     Notification::create("All snapshots deleted.", NotificationIcon::Warning)->show();
+}
+
+void TimelinePopup::onClose(CCObject*) {
+    this->setKeyboardEnabled(false);
+    this->removeFromParentAndCleanup(true);
 }
