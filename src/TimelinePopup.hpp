@@ -27,11 +27,12 @@ protected:
     void onDeleteAll(CCObject*);
     void applySnapshot(const Snapshot& snap);
 
-    // FLAlertLayerProtocol
     void FLAlert_Clicked(FLAlertLayer*, bool btn2) override {}
 
 public:
     static TimelinePopup* create(LevelEditorLayer* editorLayer);
-    void onClose(CCObject*) override;
+
+    // No override — onClose is not virtual in FLAlertLayer in Geode 5
+    void onClose(CCObject*);
     void keyBackClicked() override { onClose(nullptr); }
 };

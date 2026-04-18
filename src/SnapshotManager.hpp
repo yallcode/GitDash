@@ -23,7 +23,6 @@ struct Snapshot {
 class SnapshotManager {
 public:
     static SnapshotManager& get();
-
     SnapshotManager(const SnapshotManager&) = delete;
     SnapshotManager& operator=(const SnapshotManager&) = delete;
 
@@ -42,9 +41,6 @@ private:
     bool saveIndex(int levelID, const std::vector<Snapshot>& snapshots);
     std::vector<Snapshot> loadIndex(int levelID);
     void pruneIfNeeded(int levelID);
-
-    static std::string compressString(const std::string& data);
-    static std::string decompressString(const std::string& compressed);
 
     std::unordered_map<int, std::vector<Snapshot>> m_cache;
 };

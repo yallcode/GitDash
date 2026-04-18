@@ -1,6 +1,5 @@
 #include "SnapshotManager.hpp"
 #include <Geode/Geode.hpp>
-#include <zlib.h>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
@@ -52,8 +51,7 @@ fs::path SnapshotManager::getIndexPath(int levelID) {
     return getLevelDir(levelID) / "index.txt";
 }
 
-// ─── Index I/O (plain pipe-delimited text — no JSON dependency) ───────────────
-// Format per line: timestamp|filename|dataSize|label
+// ─── Index I/O (pipe-delimited text, no JSON or zlib needed) ─────────────────
 
 std::vector<Snapshot> SnapshotManager::loadIndex(int levelID) {
     auto path = getIndexPath(levelID);
@@ -71,7 +69,7 @@ std::vector<Snapshot> SnapshotManager::loadIndex(int levelID) {
         if (!std::getline(ss, tsStr,    '|')) continue;
         if (!std::getline(ss, filename, '|')) continue;
         if (!std::getline(ss, sizeStr,  '|')) continue;
-        std::getline(ss, label, '|');  // optional
+        std::getline(ss, label, '|');
 
         Snapshot s;
         try {
@@ -90,84 +88,34 @@ std::vector<Snapshot> SnapshotManager::loadIndex(int levelID) {
 }
 
 bool SnapshotManager::saveIndex(int levelID, const std::vector<Snapshot>& snapshots) {
-    auto path = getIndexPath(levelID);
-    std::ofstream f(path);
+    std::ofstream f(getIndexPath(levelID));
     if (!f.is_open()) return false;
     for (const auto& s : snapshots) {
-        f << s.timestamp << "|"
-          << s.filename  << "|"
-          << s.dataSize  << "|"
-          << s.label     << "\n";
+        f << s.timestamp << "|" << s.filename << "|" << s.dataSize << "|" << s.label << "\n";
     }
     return true;
 }
 
-// ─── zlib ─────────────────────────────────────────────────────────────────────
-
-std::string SnapshotManager::compressString(const std::string& data) {
-    uLongf size = compressBound(static_cast<uLong>(data.size()));
-    std::string out(size, '\0');
-    int r = compress2(
-        reinterpret_cast<Bytef*>(out.data()), &size,
-        reinterpret_cast<const Bytef*>(data.data()),
-        static_cast<uLong>(data.size()),
-        Z_BEST_COMPRESSION
-    );
-    if (r != Z_OK) { log::error("[GitDash] compress failed: {}", r); return ""; }
-    out.resize(size);
-    return out;
-}
-
-std::string SnapshotManager::decompressString(const std::string& compressed) {
-    std::string out;
-    out.resize(compressed.size() * 6);
-
-    z_stream s{};
-    if (inflateInit(&s) != Z_OK) return "";
-    s.next_in  = reinterpret_cast<Bytef*>(const_cast<char*>(compressed.data()));
-    s.avail_in = static_cast<uInt>(compressed.size());
-
-    int ret = Z_OK;
-    while (ret != Z_STREAM_END) {
-        s.next_out  = reinterpret_cast<Bytef*>(out.data() + s.total_out);
-        s.avail_out = static_cast<uInt>(out.size()  - s.total_out);
-        ret = inflate(&s, Z_NO_FLUSH);
-        if (ret == Z_BUF_ERROR || s.avail_out == 0) {
-            out.resize(out.size() * 2);
-            continue;
-        }
-        if (ret != Z_OK && ret != Z_STREAM_END) {
-            log::error("[GitDash] decompress failed: {}", ret);
-            inflateEnd(&s);
-            return "";
-        }
-    }
-    out.resize(s.total_out);
-    inflateEnd(&s);
-    return out;
-}
-
 // ─── Core API ─────────────────────────────────────────────────────────────────
+// GD level strings are already base64+deflate compressed by the game,
+// so we store them as-is without additional compression.
 
 bool SnapshotManager::takeSnapshot(int levelID, const std::string& levelString) {
     if (levelString.empty()) return false;
 
-    auto dir       = getLevelDir(levelID);
-    auto ts        = std::time(nullptr);
-    auto filename  = std::to_string(ts) + ".snap";
-
-    auto compressed = compressString(levelString);
-    if (compressed.empty()) return false;
+    auto dir      = getLevelDir(levelID);
+    auto ts       = std::time(nullptr);
+    auto filename = std::to_string(ts) + ".snap";
 
     std::ofstream f(dir / filename, std::ios::binary);
-    if (!f.is_open()) return false;
-    f.write(compressed.data(), static_cast<std::streamsize>(compressed.size()));
+    if (!f.is_open()) { log::error("[GitDash] Cannot write snap file"); return false; }
+    f.write(levelString.data(), static_cast<std::streamsize>(levelString.size()));
     f.close();
 
     Snapshot snap;
     snap.timestamp = ts;
     snap.filename  = filename;
-    snap.dataSize  = compressed.size();
+    snap.dataSize  = levelString.size();
 
     auto& cached = m_cache[levelID];
     if (cached.empty()) cached = loadIndex(levelID);
@@ -175,7 +123,7 @@ bool SnapshotManager::takeSnapshot(int levelID, const std::string& levelString) 
     saveIndex(levelID, cached);
     pruneIfNeeded(levelID);
 
-    log::info("[GitDash] Snapshot #{} saved ({} bytes compressed)", cached.size(), compressed.size());
+    log::info("[GitDash] Snapshot #{} saved ({} bytes)", cached.size(), levelString.size());
     return true;
 }
 
@@ -190,8 +138,7 @@ std::vector<Snapshot> SnapshotManager::getSnapshots(int levelID) {
 std::string SnapshotManager::loadSnapshot(int levelID, const Snapshot& snap) {
     std::ifstream f(getLevelDir(levelID) / snap.filename, std::ios::binary);
     if (!f.is_open()) return "";
-    std::string compressed((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    return decompressString(compressed);
+    return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
 }
 
 bool SnapshotManager::deleteSnapshot(int levelID, const Snapshot& snap) {
