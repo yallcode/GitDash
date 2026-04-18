@@ -5,7 +5,7 @@
 
 using namespace geode::prelude;
 
-class TimelinePopup : public FLAlertLayer {
+class TimelinePopup : public CCLayerColor {
 protected:
     LevelEditorLayer* m_editorLayer = nullptr;
     int               m_levelID     = 0;
@@ -15,6 +15,7 @@ protected:
     CCLabelBMFont* m_indexLabel = nullptr;
     CCLabelBMFont* m_timeLabel  = nullptr;
     CCLabelBMFont* m_sizeLabel  = nullptr;
+    CCLabelBMFont* m_labelText  = nullptr;
 
     bool init(LevelEditorLayer* editorLayer);
     void buildUI();
@@ -25,10 +26,14 @@ protected:
     void onRestore(CCObject*);
     void onDelete(CCObject*);
     void onDeleteAll(CCObject*);
+    void onClose(CCObject*);
     void applySnapshot(const Snapshot& snap);
 
 public:
     static TimelinePopup* create(LevelEditorLayer* editorLayer);
-    void onClose(CCObject*);
+
+    // Touch handling
+    bool ccTouchBegan(CCTouch*, CCEvent*) override { return true; }
+    void registerWithTouchDispatcher() override;
     void keyBackClicked() override { onClose(nullptr); }
 };
