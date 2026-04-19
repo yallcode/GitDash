@@ -9,7 +9,7 @@
   "version": "v0.1.0",
   "developer": "YallCode",
   "description": "Version control for the GD level editor. Snapshots your level on every save so you can roll back to any previous state.",
-  "tags": ["editor", "utility", "creator"],
+  "tags": ["editor", "utility"],
   "links": {
     "source": "https://github.com/yallcode/GitDash",
     "homepage": "https://yallcode.github.io/GitDash",
