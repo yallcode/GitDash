@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitDash — Time Machine for GD Creators</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #f5c842;
+    --gold-dim: #c49a1a;
+    --green: #4cde6a;
+    --red: #e84040;
+    --bg: #0a0c10;
+    --bg2: #111318;
+    --bg3: #181c24;
+    --text: #e8eaf0;
+    --text-dim: #8a8fa0;
+    --border: rgba(245,200,66,0.15);
+    --glow: 0 0 30px rgba(245,200,66,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ── Animated grid background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,200,66,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,200,66,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Glowing orb ── */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(245,200,66,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: pulse 6s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    background: rgba(10,12,16,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1.2rem;
+    color: var(--gold);
+    text-decoration: none;
+    letter-spacing: 2px;
+    text-shadow: var(--glow);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--gold); }
+
+  .nav-cta {
+    background: var(--gold);
+    color: var(--bg) !important;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-weight: 700 !important;
+    transition: box-shadow 0.2s !important;
+  }
+
+  .nav-cta:hover {
+    box-shadow: var(--glow) !important;
+    color: var(--bg) !important;
+  }
+
+  /* ── Sections ── */
+  section { position: relative; z-index: 1; }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(245,200,66,0.1);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .hero-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3.5rem, 10vw, 8rem);
+    line-height: 1;
+    letter-spacing: -2px;
+    color: var(--gold);
+    text-shadow:
+      0 0 60px rgba(245,200,66,0.4),
+      0 0 120px rgba(245,200,66,0.2);
+    animation: fadeUp 0.6s 0.1s ease both;
+    margin-bottom: 8px;
+  }
+
+  .hero-sub {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(0.9rem, 2vw, 1.2rem);
+    color: var(--text-dim);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    animation: fadeUp 0.6s 0.2s ease both;
+    margin-bottom: 28px;
+  }
+
+  .hero-desc {
+    max-width: 560px;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+    animation: fadeUp 0.6s 0.3s ease both;
+    margin-bottom: 48px;
+  }
+
+  .hero-desc strong { color: var(--text); }
+
+  .hero-buttons {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gold);
+    color: var(--bg);
+    padding: 14px 32px;
+    border-radius: 6px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-decoration: none;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 40px rgba(245,200,66,0.5);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    color: var(--text);
+    padding: 14px 32px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-decoration: none;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    transform: translateY(-2px);
+  }
+
+  /* ── Floating screenshot mockup ── */
+  .hero-mockup {
+    margin-top: 72px;
+    position: relative;
+    animation: fadeUp 0.8s 0.5s ease both, float 4s ease-in-out infinite;
+    width: min(560px, 90vw);
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .mockup-frame {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+      0 40px 80px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(245,200,66,0.1),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .mockup-bar {
+    background: var(--bg2);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mockup-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .mockup-screen {
+    padding: 28px;
+    background: #0d1117;
+  }
+
+  .timeline-ui {
+    background: linear-gradient(135deg, #13161e, #1a1e28);
+    border: 1px solid rgba(245,200,66,0.2);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .tui-header {
+    background: rgba(245,200,66,0.08);
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(245,200,66,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tui-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    color: var(--gold);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .tui-badge {
+    background: var(--gold);
+    color: var(--bg);
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+
+  .tui-body { padding: 16px 20px; }
+
+  .tui-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .tui-arrow {
+    width: 28px; height: 28px;
+    background: rgba(245,200,66,0.1);
+    border: 1px solid rgba(245,200,66,0.3);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold);
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .tui-snap-info { text-align: center; }
+  .tui-snap-num { font-size: 0.65rem; color: var(--text-dim); margin-bottom: 2px; }
+  .tui-snap-time { font-size: 0.9rem; color: var(--text); font-weight: 700; }
+  .tui-snap-size { font-size: 0.65rem; color: var(--gold-dim); margin-top: 2px; }
+
+  .tui-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .tui-icon {
+    width: 32px; height: 32px;
+    background: rgba(245,200,66,0.1);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .tui-card-text { flex: 1; }
+  .tui-card-label { font-size: 0.65rem; color: var(--text-dim); margin-bottom: 2px; }
+  .tui-card-val { font-size: 0.8rem; color: var(--text); }
+
+  .tui-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .tui-btn {
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  .tui-btn-restore { background: var(--green); color: #000; }
+  .tui-btn-delete  { background: rgba(232,64,64,0.2); color: var(--red); border: 1px solid rgba(232,64,64,0.3); }
+  .tui-btn-close   { background: rgba(255,255,255,0.05); color: var(--text-dim); border: 1px solid rgba(255,255,255,0.1); }
+
+  /* ── Features ── */
+  .features {
+    padding: 120px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 64px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .feature-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, rgba(245,200,66,0.05), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover {
+    border-color: rgba(245,200,66,0.4);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .feature-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+
+  .feature-desc {
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  /* ── How it works ── */
+  .howto {
+    padding: 120px 48px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .howto-inner {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 64px;
+    position: relative;
+  }
+
+  .steps::before {
+    content: '';
+    position: absolute;
+    left: 22px;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+  }
+
+  .step {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    padding-bottom: 48px;
+    position: relative;
+  }
+
+  .step-num {
+    width: 46px; height: 46px;
+    background: var(--gold);
+    color: var(--bg);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-content { padding-top: 10px; }
+
+  .step-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .step-desc {
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  /* ── Platforms ── */
+  .platforms {
+    padding: 120px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .platform-grid {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 48px;
+  }
+
+  .platform-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 40px;
+    min-width: 160px;
+    transition: border-color 0.3s;
+  }
+
+  .platform-card.supported { border-color: rgba(76,222,106,0.3); }
+  .platform-card.unsupported { opacity: 0.5; }
+
+  .platform-icon { font-size: 2rem; margin-bottom: 12px; display: block; }
+
+  .platform-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .platform-status {
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+  }
+
+  .platform-card.supported .platform-status { color: var(--green); }
+  .platform-card.unsupported .platform-status { color: var(--text-dim); }
+
+  /* ── CTA ── */
+  .cta {
+    padding: 120px 48px;
+    text-align: center;
+    background: radial-gradient(ellipse at center, rgba(245,200,66,0.06) 0%, transparent 70%);
+    border-top: 1px solid var(--border);
+  }
+
+  .cta-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(2rem, 5vw, 4rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: var(--glow);
+    margin-bottom: 20px;
+  }
+
+  .cta-sub {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-bottom: 48px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.7;
+  }
+
+  /* ── Footer ── */
+  footer {
+    padding: 48px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: gap;
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    color: var(--gold);
+    font-size: 1rem;
+    letter-spacing: 2px;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+  }
+
+  .footer-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.75rem;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--gold); }
+
+  .footer-credit {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    .features, .howto, .platforms, .cta { padding: 80px 24px; }
+    footer { flex-direction: column; gap: 20px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">GITDASH</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#howto">How It Works</a></li>
+    <li><a href="#platforms">Platforms</a></li>
+    <li><a href="https://github.com/yallcode/GitDash" target="_blank">GitHub</a></li>
+    <li><a href="#download" class="nav-cta">Download</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Geode Mod · v0.1.0 · Now Available</div>
+  <h1 class="hero-title">GITDASH</h1>
+  <p class="hero-sub">Time Machine for GD Creators</p>
+  <p class="hero-desc">
+    <strong>Never lose your level progress again.</strong> GitDash silently snapshots your level every time you save and lets you roll back to any previous state with one tap — directly from the editor pause menu.
+  </p>
+  <div class="hero-buttons">
+    <a href="https://github.com/yallcode/GitDash/releases" target="_blank" class="btn-primary">
+      ⬇ Download .geode
+    </a>
+    <a href="https://github.com/yallcode/GitDash" target="_blank" class="btn-secondary">
+      ⌥ View Source
+    </a>
+  </div>
+
+  <!-- UI Mockup -->
+  <div class="hero-mockup">
+    <div class="mockup-frame">
+      <div class="mockup-bar">
+        <div class="mockup-dot" style="background:#e84040"></div>
+        <div class="mockup-dot" style="background:#f5c842"></div>
+        <div class="mockup-dot" style="background:#4cde6a"></div>
+        <span style="font-size:0.65rem;color:#555;margin-left:8px;font-family:'Space Mono',monospace;">GitDash Timeline</span>
+      </div>
+      <div class="mockup-screen">
+        <div class="timeline-ui">
+          <div class="tui-header">
+            <span class="tui-title">GITDASH TIMELINE</span>
+            <span class="tui-badge">7 SNAPS</span>
+          </div>
+          <div class="tui-body">
+            <div class="tui-nav">
+              <div class="tui-arrow">◀</div>
+              <div class="tui-snap-info">
+                <div class="tui-snap-num">SNAP 3 / 7</div>
+                <div class="tui-snap-time">15 min ago</div>
+                <div class="tui-snap-size">0.3 KB</div>
+              </div>
+              <div class="tui-arrow">▶</div>
+            </div>
+            <div class="tui-card">
+              <div class="tui-icon">🕐</div>
+              <div class="tui-card-text">
+                <div class="tui-card-label">TIMESTAMP</div>
+                <div class="tui-card-val">Today at 15:19:09</div>
+              </div>
+            </div>
+            <div class="tui-buttons">
+              <div class="tui-btn tui-btn-restore">RESTORE</div>
+              <div class="tui-btn tui-btn-delete">DELETE</div>
+              <div class="tui-btn tui-btn-close">CLOSE</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <p class="section-label reveal">What it does</p>
+  <h2 class="section-title reveal">Every save.<br>Perfectly preserved.</h2>
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <span class="feature-icon">🕐</span>
+      <div class="feature-title">Auto Snapshots</div>
+      <p class="feature-desc">Every time you hit Save, GitDash silently captures your level data. No manual backups. No clutter in your levels list.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">⚡</span>
+      <div class="feature-title">One-Tap Restore</div>
+      <p class="feature-desc">Open the Timeline from the pause menu, browse your history with arrows, and restore any snapshot instantly.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">📦</span>
+      <div class="feature-title">Smart Storage</div>
+      <p class="feature-desc">Snapshots are stored efficiently. Configure how many to keep per level — oldest are auto-deleted when the limit is reached.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🔒</span>
+      <div class="feature-title">Non-Destructive</div>
+      <p class="feature-desc">GitDash never touches your actual saved levels list. Your snapshots live in a separate, isolated storage directory.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">⚙️</span>
+      <div class="feature-title">Configurable</div>
+      <p class="feature-desc">Control max snapshots per level, enable autosave snapshots, and toggle timestamp display — all from the Geode settings menu.</p>
+    </div>
+    <div class="feature-card reveal">
+      <span class="feature-icon">🆓</span>
+      <div class="feature-title">Free & Open Source</div>
+      <p class="feature-desc">MIT licensed. No paywalls, no ads, no telemetry. Built by YallCode for the GD creator community.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="howto" id="howto">
+  <div class="howto-inner">
+    <p class="section-label reveal">Usage</p>
+    <h2 class="section-title reveal">How to use GitDash</h2>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Install via Geode</div>
+          <p class="step-desc">Download GitDash from the Geode mod index or install the .geode file manually. Requires Geode v5.x on Geometry Dash 2.2081.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Build & Save as usual</div>
+          <p class="step-desc">Open any level in the editor and work normally. Every time you tap Save, Save and Play, or Save and Exit — GitDash silently captures a snapshot in the background.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Open the Timeline</div>
+          <p class="step-desc">Made a mistake? Open the Editor Pause Menu and tap the <strong style="color:var(--gold)">Timeline</strong> button in the top-right corner.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Browse & Restore</div>
+          <p class="step-desc">Use the ← → arrows to navigate your snapshot history. Each snapshot shows when it was taken and how large it is. Tap <strong style="color:var(--green)">Restore</strong> to roll back instantly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORMS -->
+<section class="platforms" id="platforms">
+  <p class="section-label reveal">Compatibility</p>
+  <h2 class="section-title reveal">Platform Support</h2>
+  <div class="platform-grid">
+    <div class="platform-card supported reveal">
+      <span class="platform-icon">🤖</span>
+      <div class="platform-name">Android 32</div>
+      <div class="platform-status">✓ SUPPORTED</div>
+    </div>
+    <div class="platform-card supported reveal">
+      <span class="platform-icon">🤖</span>
+      <div class="platform-name">Android 64</div>
+      <div class="platform-status">✓ SUPPORTED</div>
+    </div>
+    <div class="platform-card supported reveal">
+      <span class="platform-icon">🪟</span>
+      <div class="platform-name">Windows</div>
+      <div class="platform-status">✓ SUPPORTED</div>
+    </div>
+    <div class="platform-card unsupported reveal">
+      <span class="platform-icon">🍎</span>
+      <div class="platform-name">macOS</div>
+      <div class="platform-status">✗ NOT SUPPORTED</div>
+    </div>
+    <div class="platform-card unsupported reveal">
+      <span class="platform-icon">📱</span>
+      <div class="platform-name">iOS</div>
+      <div class="platform-status">✗ NOT SUPPORTED</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="download">
+  <h2 class="cta-title reveal">Ready to never<br>lose progress again?</h2>
+  <p class="cta-sub reveal">Install GitDash and build with confidence. Your level history is always one tap away.</p>
+  <div class="hero-buttons reveal">
+    <a href="https://github.com/yallcode/GitDash/releases" target="_blank" class="btn-primary">
+      ⬇ Download Latest
+    </a>
+    <a href="https://github.com/yallcode/GitDash" target="_blank" class="btn-secondary">
+      ⭐ Star on GitHub
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">GITDASH</div>
+  <ul class="footer-links">
+    <li><a href="https://github.com/yallcode/GitDash" target="_blank">GitHub</a></li>
+    <li><a href="https://youtube.com/@YallaYCode" target="_blank">YouTube</a></li>
+    <li><a href="https://twitter.com/YallCode" target="_blank">X / Twitter</a></li>
+  </ul>
+  <div class="footer-credit">Made by <strong style="color:var(--gold)">YallCode</strong> · Built with Geode SDK</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
