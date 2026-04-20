@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.0 (initial release)
+## v0.1.1 (initial release)
 - Snapshot on manual save (`LevelEditorLayer::saveLevel`)
 - Optional snapshot on autosave (off by default)
 - Timeline popup in EditorPauseLayer with ← → navigation

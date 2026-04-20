@@ -96,7 +96,7 @@ GitDash/
 
 ## 📋 Changelog
 
-### v0.1.0
+### v0.1.1
 - Snapshot on manual save
 - Optional snapshot on autosave
 - Timeline popup in editor pause menu
