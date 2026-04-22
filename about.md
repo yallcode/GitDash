@@ -13,7 +13,7 @@ GitDash is a version control system for the Geometry Dash level editor. Every ti
 
 Save your level → GitDash snapshots it.  
 Something goes wrong → Open the pause menu → Tap **Timeline**.  
-Browse your save history → Tap **Restore**.  
+Browse your save history with ← → arrows → Tap **Restore**.  
 Done. Your level is back exactly as it was.
 
 ---
@@ -25,7 +25,7 @@ Done. Your level is back exactly as it was.
 - 📦 **Efficient storage** — snapshots stored per level, auto-pruned when limit is reached
 - ⚙️ **Configurable** — set max snapshots per level (5–200), toggle autosave snapshots
 - 🔒 **Non-destructive** — your actual saved levels list is never touched
-- 🆓 **Free and open source** — MIT licensed, no ads, no tracking
+- 🆓 **Free and open source** — no ads, no tracking
 
 ---
 
@@ -42,11 +42,10 @@ Done. Your level is back exactly as it was.
 ## Links
 
 - 🌐 **Website**: [yallcode.github.io/GitDash](https://yallcode.github.io/GitDash)
-- 🌐 **Official site**:  [yallcode.github.io/GitDash](https://yallcode.github.io/YallCode/)
 - 💻 **Source**: [github.com/yallcode/GitDash](https://github.com/yallcode/GitDash)
-- 💬 **Official Discord Server**: [YallCode Community](https://discord.gg/yUe8kE5fRF)
-- 🎬 **YouTube Official Channel**: [@YallaYCode](https://youtube.com/@YallaYCode)
+- 💬 **Discord **: [YallCode Community](https://discord.gg/yUe8kE5fRF)
+- 🎬 **YouTube**: [@YallaYCode](https://youtube.com/@YallaYCode)
 
 ---
 
-*Built by [YallCode](https://github.com/yallcode) — also made YallBotMod and GitDash for GD.*
+*Built by [YallCode](https://github.com/yallcode)*

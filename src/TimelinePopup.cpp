@@ -22,7 +22,7 @@ public:
     }
 
     void run() {
-        this->scheduleOnce(schedule_selector(RestoreRunner::doRestore), 0.05f);
+        this->scheduleOnce(schedule_selector(RestoreRunner::doRestore), 0.5f);
     }
 
     void doRestore(float) {
