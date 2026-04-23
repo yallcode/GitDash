@@ -96,6 +96,15 @@ GitDash/
 
 ## 📋 Changelog
 
+## v0.1.3
+- Fixed crash when tapping on objects after restoring a snapshot
+- Fixed freeze when exiting the editor after restoring
+- Fixed snapshots being created even when nothing changed in the level
+- Improved scene transition safety (0.3s deferred restore)
+
+## v0.1.2
+- Fixed crash when restoring a snapshot while a touch event was still being processed
+
 ### v0.1.1
 - Snapshot on manual save
 - Optional snapshot on autosave

@@ -11,29 +11,27 @@ class $modify(GitDashPauseLayer, EditorPauseLayer) {
 
     void onSaveAndPlay(CCObject* sender) {
         EditorPauseLayer::onSaveAndPlay(sender);
-        takeSnapshot();
+        takeSnapshotIfChanged();
     }
 
     void onSaveAndExit(CCObject* sender) {
         EditorPauseLayer::onSaveAndExit(sender);
-        takeSnapshot();
+        takeSnapshotIfChanged();
     }
 
     void onSave(CCObject* sender) {
         EditorPauseLayer::onSave(sender);
-        takeSnapshot();
+        takeSnapshotIfChanged();
     }
 
     void customSetup() {
         EditorPauseLayer::customSetup();
 
         auto winSize = CCDirector::get()->getWinSize();
-
         auto spr = ButtonSprite::create("Timeline", "bigFont.fnt", "GJ_button_04.png", 0.5f);
         auto btn = CCMenuItemSpriteExtra::create(
             spr, this, menu_selector(GitDashPauseLayer::onOpenTimeline)
         );
-
         auto menu = CCMenu::create(btn, nullptr);
         menu->setPosition({ winSize.width - 55.f, winSize.height - 25.f });
         menu->setZOrder(10);
@@ -43,20 +41,28 @@ class $modify(GitDashPauseLayer, EditorPauseLayer) {
     void onOpenTimeline(CCObject*) {
         auto editorLayer = LevelEditorLayer::get();
         if (!editorLayer) return;
-
         auto popup = TimelinePopup::create(editorLayer);
-        if (!popup) return;
-
-        // Add directly to the running scene so it gets proper touch handling
-        CCDirector::get()->getRunningScene()->addChild(popup, 999);
+        if (popup) CCDirector::get()->getRunningScene()->addChild(popup, 999);
     }
 
-    void takeSnapshot() {
+    void takeSnapshotIfChanged() {
         auto editorLayer = LevelEditorLayer::get();
         if (!editorLayer) return;
 
         int  levelID     = editorLayer->m_level->m_levelID.value();
         auto levelString = editorLayer->m_level->m_levelString;
+
+        if (levelString.empty()) return;
+
+        // Only snapshot if the level string actually changed since last snapshot
+        auto existing = SnapshotManager::get().getSnapshots(levelID);
+        if (!existing.empty()) {
+            auto lastData = SnapshotManager::get().loadSnapshot(levelID, existing.front());
+            if (lastData == levelString) {
+                log::debug("[GitDash] Level unchanged — skipping snapshot.");
+                return;
+            }
+        }
 
         bool ok = SnapshotManager::get().takeSnapshot(levelID, levelString);
         if (ok) {
