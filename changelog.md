@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.4
+- Added iOS support
+- Fixed crash when tapping objects after restoring a snapshot (color channel null pointer)
+- Fixed crash caused by BetterEdit compatibility issue during snapshot comparison
+- Optimized change detection — compares size before content to avoid unnecessary file reads
+- Fixed snapshots being created even when level data didn't change
+
 ## v0.1.3
 - Fixed crash when tapping on objects after restoring a snapshot
 - Fixed freeze when exiting the editor after restoring

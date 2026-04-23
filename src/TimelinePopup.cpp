@@ -5,7 +5,6 @@
 using namespace geode::prelude;
 
 // ── RestoreRunner ─────────────────────────────────────────────────────────────
-// Defers the editor reload to a safe point outside any touch handler.
 
 class RestoreRunner : public CCNode {
 public:
@@ -23,16 +22,11 @@ public:
     }
 
     void run() {
-        // 0.3s is enough for ALL touch handlers to fully unwind
         this->scheduleOnce(schedule_selector(RestoreRunner::doRestore), 0.3f);
     }
 
     void doRestore(float) {
         if (!m_level) { this->removeFromParent(); return; }
-
-        // Use the proper GD method to enter the editor —
-        // same as tapping a level from the levels list.
-        // This correctly initialises ALL editor state including canPasteState.
         auto scene = LevelEditorLayer::scene(m_level, false);
         this->removeFromParent();
         CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));

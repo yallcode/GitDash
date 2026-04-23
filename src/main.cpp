@@ -28,7 +28,9 @@ class $modify(GitDashPauseLayer, EditorPauseLayer) {
         EditorPauseLayer::customSetup();
 
         auto winSize = CCDirector::get()->getWinSize();
-        auto spr = ButtonSprite::create("Timeline", "bigFont.fnt", "GJ_button_04.png", 0.5f);
+        auto spr = ButtonSprite::create(
+            "Timeline", "bigFont.fnt", "GJ_button_04.png", 0.5f
+        );
         auto btn = CCMenuItemSpriteExtra::create(
             spr, this, menu_selector(GitDashPauseLayer::onOpenTimeline)
         );
@@ -54,13 +56,17 @@ class $modify(GitDashPauseLayer, EditorPauseLayer) {
 
         if (levelString.empty()) return;
 
-        // Only snapshot if the level string actually changed since last snapshot
+        // Only snapshot if level actually changed since last snapshot
+        // Compare size first (cheap) then content (expensive only if sizes match)
         auto existing = SnapshotManager::get().getSnapshots(levelID);
         if (!existing.empty()) {
-            auto lastData = SnapshotManager::get().loadSnapshot(levelID, existing.front());
-            if (lastData == levelString) {
-                log::debug("[GitDash] Level unchanged — skipping snapshot.");
-                return;
+            // If sizes differ we know it changed — skip expensive full compare
+            if (existing.front().dataSize == levelString.size()) {
+                auto lastData = SnapshotManager::get().loadSnapshot(levelID, existing.front());
+                if (lastData == levelString) {
+                    log::debug("[GitDash] Level unchanged — skipping snapshot.");
+                    return;
+                }
             }
         }
 

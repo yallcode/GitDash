@@ -29,6 +29,21 @@ Done. Your level is back exactly as it was.
 
 ---
 
+## Why use this over undo/redo?
+
+Undo/redo is **wiped every time you close and reopen the editor**. GitDash snapshots **persist across sessions**, device restarts, and accidental exits. Your entire save history is always there.
+
+---
+
+## Platforms
+
+- ✅ Android (32-bit & 64-bit)
+- ✅ Windows
+- ✅ iOS
+- ❌ macOS
+
+---
+
 ## Settings
 
 | Setting | Default | Description |
@@ -43,7 +58,7 @@ Done. Your level is back exactly as it was.
 
 - 🌐 **Website**: [yallcode.github.io/GitDash](https://yallcode.github.io/GitDash)
 - 💻 **Source**: [github.com/yallcode/GitDash](https://github.com/yallcode/GitDash)
-- 💬 **Discord **: [YallCode Community](https://discord.gg/yUe8kE5fRF)
+- 💬 **Discord**: [YallCode Community](https://discord.gg/yUe8kE5fRF)
 - 🎬 **YouTube**: [@YallaYCode](https://youtube.com/@YallaYCode)
 
 ---
